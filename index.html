@@ -321,11 +321,7 @@
 </div>
 
 <script>
-    // ==========================================
-    // ⬇️ PUT YOUR GEMINI API KEY HERE ⬇️
-    // ==========================================
-    const API_KEY = "process.env.GEMINI_API_KEY"; 
-    // ==========================================
+    // Completely dependent on the backend, hardcoded API variables have been removed.
 
     const prizes = [
         "₹1,000", "₹2,000", "₹3,000", "₹5,000", "₹10,000", 
@@ -366,11 +362,6 @@
 
     // --- GAME GENERATION LOGIC WITH AUTO-RETRY ---
     async function generateAndStart(isCustom) {
-        // Safe check for deployment
-        if (!process.env.GEMINI_API_KEY && API_KEY === "") {
-             console.log("Running in Production Mode");
-        }
-
         let customTopic = isCustom ? document.getElementById('custom-topic').value.trim() : "";
 
         document.getElementById('setup-screen').style.display = 'none';
@@ -378,22 +369,7 @@
         const loadingText = document.getElementById('loading-text');
 
         try {
-            loadingText.innerText = "Finding a compatible AI model for your key...";
-            
-            const modelsResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${safeGeminiKey}`);
-            const modelsData = await modelsResponse.json();
-            if (modelsData.error) throw new Error("API Key Error: " + modelsData.error.message);
-
-            const validModels = modelsData.models.filter(m => m.supportedGenerationMethods.includes("generateContent") && m.name.includes("gemini"));
-            if (validModels.length === 0) throw new Error("No text-generation Gemini models found.");
-
-            const modelNames = validModels.map(m => m.name);
-            let selectedModel = modelNames[0]; 
-            if (modelNames.includes("models/gemini-1.5-flash")) selectedModel = "models/gemini-1.5-flash";
-            else if (modelNames.includes("models/gemini-1.5-pro")) selectedModel = "models/gemini-1.5-pro";
-            else if (modelNames.includes("models/gemini-pro")) selectedModel = "models/gemini-pro";
-
-            loadingText.innerText = `Using ${selectedModel.replace('models/', '')}. Generating 14 questions...`;
+            loadingText.innerText = "Connecting to your secure backend API...";
 
             const randomSeed = Math.floor(Math.random() * 100000);
 
@@ -435,7 +411,7 @@
             let data;
 
             while (attempt < maxAttempts) {
-                // Point the API request to the local secure serverless folder
+                // Point directly to Vercel/Netlify API endpoint
                 const response = await fetch('/api/generate-questions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -459,6 +435,7 @@
                 break; 
             }
 
+            // Parse response correctly
             let rawJson = data.candidates && data.candidates[0].content.parts[0].text;
             rawJson = rawJson.replace(/```json/g, "").replace(/```/g, "").trim();
             
@@ -478,7 +455,6 @@
             audioIntro.play().then(() => {
                 document.getElementById('intro-screen').style.display = 'block';
                 
-                // EXACT 7-SECOND DELAY FOR INTRO
                 setTimeout(() => {
                     document.getElementById('intro-screen').style.display = 'none';
                     document.getElementById('game-container').style.display = 'block';
@@ -543,14 +519,11 @@
 
         setTimeout(() => {
             startTimer(currentQ);
-            
-            // DYNAMIC TIMING AUDIO
-            if (currentQ < 5) { // Questions 1-5 (45 seconds)
+            if (currentQ < 5) {
                 audioTiming45.play().catch(e => console.error(e));
-            } else if (currentQ < 10) { // Questions 6-10 (60 seconds)
+            } else if (currentQ < 10) {
                 audioTiming60.play().catch(e => console.error(e));
             }
-            // Questions 11-14 have no timer, so no audio plays.
         }, 3000);
     }
 
@@ -649,25 +622,23 @@
         let buttons = document.getElementsByClassName("option-btn");
         for(let btn of buttons) btn.disabled = true;
 
-        // INSTANT LOCK SOUND AND COLOR REVEAL
         setTimeout(() => {
             buttons[selectedIdx].style.backgroundColor = "#d4af37";
             buttons[selectedIdx].style.color = "#000";
             audioLock.play().catch(e=>console.error(e));
         }, 1000);
 
-        // Suspense playing for the entire 12-second length
         setTimeout(() => {
             audioSuspense.play().catch(e=>console.error(e));
         }, 3000);
 
         setTimeout(() => { 
             revealAnswer(selectedIdx, buttons); 
-        }, 15000); // Total 15s delay
+        }, 15000); 
     }
 
     function revealAnswer(selectedIdx, buttons) {
-        stopAllAudio(); 
+        stopAllAudio();
 
         setTimeout(() => {
             let correctIdx = currentGameData[currentQ].ans;
