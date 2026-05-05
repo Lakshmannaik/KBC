@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Dynamic KBC Challenge</title>
+    <style>
+        :root {
+            --primary-gold: #d4af37;
+            --bg-dark: #0b0c2a;
+            --bg-light: #1a1c4b;
+        }
+        body {
+            background-color: var(--bg-dark);
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 90vh;
+        }
+        
+        /* Screens */
+        #setup-screen, #loading-screen, #intro-screen, #game-container {
+            width: 100%;
+            max-width: 900px;
+            border: 3px solid var(--primary-gold);
+            border-radius: 20px;
+            padding: 30px 40px;
+            background: radial-gradient(circle, var(--bg-light) 0%, var(--bg-dark) 100%);
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.2);
+            position: relative;
+        }
+        #game-container, #loading-screen, #intro-screen { display: none; }
+
+        h1, h2 { color: var(--primary-gold); font-size: 2.5em; margin-bottom: 10px;}
+        p { font-size: 1.2em; margin-bottom: 30px; color: #ccc;}
+        
+        /* Intro Screen specific */
+        #intro-screen h1 { font-size: 4em; animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0% { transform: scale(1); text-shadow: 0 0 10px var(--primary-gold); }
+            50% { transform: scale(1.05); text-shadow: 0 0 30px var(--primary-gold); }
+            100% { transform: scale(1); text-shadow: 0 0 10px var(--primary-gold); }
+        }
+
+        /* Setup Input */
+        #custom-section {
+            display: none;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(212, 175, 55, 0.3);
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        input[type="text"] {
+            width: 80%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            border: 2px solid var(--primary-gold);
+            background: rgba(0, 0, 0, 0.5);
+            color: #fff;
+            font-size: 1.1em;
+            text-align: center;
+        }
+        input::placeholder { color: #888; }
+        
+        .start-btn {
+            background: var(--primary-gold);
+            color: #000;
+            border: none;
+            padding: 20px 50px;
+            font-size: 1.8em;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+            margin: 10px;
+        }
+        .start-btn:hover { background: #fff700; transform: scale(1.05); box-shadow: 0 0 25px rgba(212, 175, 55, 0.8);}
+
+        .secondary-btn {
+            background: transparent;
+            color: var(--primary-gold);
+            border: 2px solid var(--primary-gold);
+            padding: 12px 30px;
+            font-size: 1.2em;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
+        }
+        .secondary-btn:hover { background: rgba(212, 175, 55, 0.1); }
+
+        .custom-start-btn {
+            background: var(--primary-gold);
+            color: #000;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.3em;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .custom-start-btn:hover { background: #fff700; transform: scale(1.05); }
+
+        /* Game UI Elements */
+        .header-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: var(--primary-gold);
+            margin-bottom: 15px;
+        }
+        #timer-container {
+            width: 90px;
+            height: 90px;
+            border: 4px solid var(--primary-gold);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.2em;
+            background: #000;
+            color: #fff;
+            margin: 0 auto 15px;
+            box-shadow: inset 0 0 15px rgba(212, 175, 55, 0.5);
+        }
+        .time-warning { color: #ff4c4c !important; border-color: #ff4c4c !important; box-shadow: inset 0 0 15px rgba(255, 76, 76, 0.5) !important; }
+        
+        /* Lifelines */
+        .lifelines {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .lifeline-btn {
+            background: #000;
+            color: var(--primary-gold);
+            border: 2px solid var(--primary-gold);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .lifeline-btn:hover:not(:disabled) { background: var(--primary-gold); color: #000; }
+        .lifeline-btn:disabled { opacity: 0.4; cursor: not-allowed; text-decoration: line-through; background: #333; }
+
+        #question {
+            font-size: 1.5em;
+            margin: 15px 0;
+            min-height: 80px;
+            padding: 20px;
+            background: rgba(0,0,0,0.6);
+            border: 2px solid var(--primary-gold);
+            border-radius: 30px;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        
+        #hint-box {
+            display: none;
+            color: #fff700;
+            font-style: italic;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        .option-btn {
+            background-color: #000;
+            color: white;
+            border: 2px solid var(--primary-gold);
+            border-radius: 40px;
+            padding: 18px 25px;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            min-height: 65px;
+        }
+        .option-btn:hover:not(:disabled) { background-color: var(--primary-gold); color: black; box-shadow: 0 0 15px var(--primary-gold); }
+        .option-btn:disabled { cursor: not-allowed; }
+        .hidden-option { visibility: hidden; }
+
+        /* Modal Popup */
+        #modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal-content {
+            background: linear-gradient(135deg, var(--primary-gold), #fff700);
+            color: #000;
+            padding: 40px 60px;
+            border-radius: 20px;
+            font-size: 2em;
+            font-weight: bold;
+            box-shadow: 0 0 40px var(--primary-gold);
+            max-width: 600px;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        .modal-content button {
+            padding: 15px 30px;
+            font-size: 0.6em;
+            text-transform: uppercase;
+            background: #000;
+            color: var(--primary-gold);
+            border: 2px solid var(--primary-gold);
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .modal-content button:hover { background: var(--primary-gold); color: #000; border-color: #000; }
+        
+        .loader {
+            border: 8px solid rgba(255,255,255,0.1);
+            border-top: 8px solid var(--primary-gold);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div id="setup-screen">
+    <h1>AI Crorepati</h1>
+    
+    <p style="font-size: 0.9em; color: #aaa; margin-bottom: 20px; font-style: italic;">
+        Hit <strong>Play Now</strong> to face a completely randomized challenge, or select <strong>Customize Quiz</strong> to force the AI to focus on your favorite topics!
+    </p>
+
+    <button class="start-btn" onclick="generateAndStart(false)">Play Now</button>
+    <br>
+    <button class="secondary-btn" onclick="toggleCustomize()">Customize Quiz</button>
+
+    <div id="custom-section">
+        <input type="text" id="custom-topic" placeholder="e.g., Space, Bollywood, Cars...">
+        <br>
+        <button class="custom-start-btn" onclick="generateAndStart(true)">Start Custom Quiz</button>
+    </div>
+</div>
+
+<div id="loading-screen">
+    <h2>Connecting to AI...</h2>
+    <div class="loader"></div>
+    <p id="loading-text">Checking available AI models...</p>
+</div>
+
+<div id="intro-screen">
+    <h1>Let's Play Kaun Banega Crorepati!</h1>
+</div>
+
+<div id="game-container">
+    <div class="header-info">
+        <div>Q: <span id="q-number">1</span>/14</div>
+        <div>Prize: <span id="prize-money">₹1,000</span></div>
+    </div>
+    
+    <div id="timer-container"><span id="timer">45</span></div>
+    
+    <div class="lifelines">
+        <button class="lifeline-btn" id="ll-fifty" onclick="useFiftyFifty()">50:50</button>
+        <button class="lifeline-btn" id="ll-hint" onclick="useHint()">💡 Hint</button>
+        <button class="lifeline-btn" id="ll-poll" onclick="usePoll()">👥 Poll</button>
+    </div>
+
+    <div id="question">Loading...</div>
+    <div id="hint-box"></div>
+
+    <div class="options-grid" id="options">
+        <button class="option-btn" onclick="lockAnswer(0)" id="btn-0"></button>
+        <button class="option-btn" onclick="lockAnswer(1)" id="btn-1"></button>
+        <button class="option-btn" onclick="lockAnswer(2)" id="btn-2"></button>
+        <button class="option-btn" onclick="lockAnswer(3)" id="btn-3"></button>
+    </div>
+</div>
+
+<div id="modal">
+    <div class="modal-content">
+        <div id="modal-text">You won!</div>
+        <div class="modal-buttons" id="modal-btn-container"></div>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // ⬇️ PUT YOUR GEMINI API KEY HERE ⬇️
+    // ==========================================
+    const API_KEY = ""; 
+    // ==========================================
+
+    const prizes = [
+        "₹1,000", "₹2,000", "₹3,000", "₹5,000", "₹10,000", 
+        "₹20,000", "₹40,000", "₹80,000", "₹1,60,000", "₹3,20,000", 
+        "₹6,40,000", "₹12,50,000", "₹50,00,000", "₹1 Crore"
+    ];
+
+    let currentGameData = [];
+    let currentQ = 0;
+    let timeLeft = 0;
+    let timerInterval;
+    let lifelines = { fifty: true, hint: true, poll: true };
+
+    // --- AUDIO SYSTEM ENGINE ---
+    const audioIntro = new Audio('INTRO.mp3');
+    const audioQStart = new Audio('QUESTION_START.mp3');
+    
+    // Dynamic Time Limits
+    const audioTiming45 = new Audio('45 second.mp3');
+    const audioTiming60 = new Audio('60 sec.mp3');
+    
+    const audioLock = new Audio('LOCK.mp3');
+    const audioSuspense = new Audio('SUSPENSE.mp3');
+    const audioCorrect = new Audio('CORRECT.mp3');
+    const audioWrong = new Audio('WRONG.mp3');
+
+    function stopAllAudio() {
+        [audioIntro, audioQStart, audioTiming45, audioTiming60, audioLock, audioSuspense, audioCorrect, audioWrong].forEach(audio => {
+            audio.pause();
+            audio.currentTime = 0;
+        });
+    }
+
+    function toggleCustomize() {
+        const section = document.getElementById('custom-section');
+        section.style.display = (section.style.display === 'none' || section.style.display === '') ? 'block' : 'none';
+    }
+
+    // --- GAME GENERATION LOGIC WITH AUTO-RETRY ---
+    async function generateAndStart(isCustom) {
+        const safeGeminiKey = API_KEY.trim();
+        if(safeGeminiKey === "PASTE_YOUR_GEMINI_API_KEY_HERE" || !safeGeminiKey) { 
+            alert("Please edit the HTML file and paste your Gemini API key in the JavaScript section!"); 
+            return; 
+        }
+
+        let customTopic = isCustom ? document.getElementById('custom-topic').value.trim() : "";
+
+        document.getElementById('setup-screen').style.display = 'none';
+        document.getElementById('loading-screen').style.display = 'block';
+        const loadingText = document.getElementById('loading-text');
+
+        try {
+            loadingText.innerText = "Finding a compatible AI model for your key...";
+            
+            const modelsResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${safeGeminiKey}`);
+            const modelsData = await modelsResponse.json();
+            if (modelsData.error) throw new Error("API Key Error: " + modelsData.error.message);
+
+            const validModels = modelsData.models.filter(m => m.supportedGenerationMethods.includes("generateContent") && m.name.includes("gemini"));
+            if (validModels.length === 0) throw new Error("No text-generation Gemini models found.");
+
+            const modelNames = validModels.map(m => m.name);
+            let selectedModel = modelNames[0]; 
+            if (modelNames.includes("models/gemini-1.5-flash")) selectedModel = "models/gemini-1.5-flash";
+            else if (modelNames.includes("models/gemini-1.5-pro")) selectedModel = "models/gemini-1.5-pro";
+            else if (modelNames.includes("models/gemini-pro")) selectedModel = "models/gemini-pro";
+
+            loadingText.innerText = `Using ${selectedModel.replace('models/', '')}. Generating 14 questions...`;
+
+            const randomSeed = Math.floor(Math.random() * 100000);
+
+            const nicheTopics = [
+                "Ancient Indian Empires", "90s Bollywood Blockbusters", "Indian Railway History", 
+                "ISRO Space Missions", "Regional Indian Cuisines", "Lesser-known Indian Monuments", 
+                "Indian Classical Music", "Indian Olympic Medalists", "Indian Wildlife Sanctuaries", 
+                "Indian Constitutional Drafting", "Indian Banking History", "Mythological Weapons"
+            ];
+            const shuffledTopics = nicheTopics.sort(() => 0.5 - Math.random()).slice(0, 3).join(", ");
+
+            let topicInstruction = customTopic 
+                ? `The user has requested the quiz to heavily feature: ${customTopic}. Ensure a large portion of the questions revolve around this.` 
+                : `To ensure randomness, you MUST base several questions on these specific themes: ${shuffledTopics}.`;
+
+            const promptText = `Act as the host of Kaun Banega Crorepati. Generate a trivia quiz with exactly 14 questions tailored for an Indian audience.
+            
+            DIFFICULTY PROGRESSION:
+            Question 1-4: Very easy general knowledge (₹1,000 to ₹5,000 level).
+            Question 5-9: Moderate difficulty (₹10,000 to ₹1,60,000 level).
+            Question 10-14: Extremely hard, highly obscure trivia (₹3,20,000 to ₹1 Crore level).
+            
+            TOPIC RULES:
+            ${topicInstruction}
+            
+            CRITICAL RULES:
+            1. NEVER output standard/repeated KBC questions. Dig deep into obscure, unique facts.
+            2. Return ONLY a raw JSON array. Do not wrap it in markdown blockquotes like \`\`\`json. 
+            
+            Format strictly like this:
+            [
+              {"q": "Question text here?", "opts": ["A: Option1", "B: Option2", "C: Option3", "D: Option4"], "ans": 0, "hint": "A short, helpful hint without revealing the exact answer."},
+              ...13 more questions
+            ]
+            The 'ans' key must be the integer index (0-3). Ensure exactly 14 items.`;
+
+            let attempt = 0;
+            const maxAttempts = 3;
+            let data;
+
+            while (attempt < maxAttempts) {
+                // Point the API request to the local secure serverless folder
+                const response = await fetch('/api/generate-questions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: promptText })
+                });
+
+                data = await response.json();
+
+                if (data.error) {
+                    if (data.error.toLowerCase().includes("high demand") || data.error.code === 503) {
+                        attempt++;
+                        if (attempt >= maxAttempts) throw new Error("Google's API is currently overloaded with traffic. Please wait a minute and try again.");
+                        
+                        loadingText.innerText = `Google servers are busy. Retrying automatically (Attempt ${attempt + 1}/3)...`;
+                        await new Promise(resolve => setTimeout(resolve, 2500));
+                        continue;
+                    } else {
+                        throw new Error(data.error);
+                    }
+                }
+                break; 
+            }
+
+            let rawJson = data.candidates && data.candidates[0].content.parts[0].text;
+            rawJson = rawJson.replace(/```json/g, "").replace(/```/g, "").trim();
+            
+            currentGameData = JSON.parse(rawJson);
+            if(currentGameData.length !== 14) throw new Error("API didn't return exactly 14 questions.");
+
+            lifelines = { fifty: true, hint: true, poll: true };
+            document.getElementById('ll-fifty').disabled = false;
+            document.getElementById('ll-hint').disabled = false;
+            document.getElementById('ll-poll').disabled = false;
+
+            document.getElementById('loading-screen').style.display = 'none';
+            
+            stopAllAudio();
+            
+            // Promise-based Audio Sync: Wait for browser to confirm audio is playing BEFORE showing screen
+            audioIntro.play().then(() => {
+                document.getElementById('intro-screen').style.display = 'block';
+                
+                // EXACT 7-SECOND DELAY FOR INTRO
+                setTimeout(() => {
+                    document.getElementById('intro-screen').style.display = 'none';
+                    document.getElementById('game-container').style.display = 'block';
+                    currentQ = 0;
+                    loadQuestion();
+                }, 7000);
+
+            }).catch(e => {
+                console.error("Browser blocked autoplay:", e);
+                document.getElementById('intro-screen').style.display = 'block';
+                setTimeout(() => {
+                    document.getElementById('intro-screen').style.display = 'none';
+                    document.getElementById('game-container').style.display = 'block';
+                    currentQ = 0;
+                    loadQuestion();
+                }, 7000);
+            });
+
+        } catch (error) {
+            alert("Error: " + error.message);
+            document.getElementById('loading-screen').style.display = 'none';
+            document.getElementById('setup-screen').style.display = 'block';
+        }
+    }
+
+    function loadQuestion() {
+        if(currentQ >= 14) {
+            showModal("🎉 CROREPATI! 🎉<br>You have won ₹1 Crore!", 'gameover');
+            return;
+        }
+
+        stopAllAudio();
+        
+        document.getElementById("question").style.opacity = "0";
+        document.getElementById("options").style.opacity = "0";
+        
+        document.getElementById("timer-container").classList.remove("time-warning");
+        document.getElementById("q-number").innerText = currentQ + 1;
+        document.getElementById("prize-money").innerText = prizes[currentQ];
+        document.getElementById("hint-box").style.display = "none";
+        
+        let qData = currentGameData[currentQ];
+        document.getElementById("question").innerText = qData.q;
+        for(let i=0; i<4; i++) {
+            let btn = document.getElementById("btn-" + i);
+            btn.innerText = qData.opts[i];
+            btn.style.backgroundColor = "#000";
+            btn.style.color = "white";
+            btn.disabled = false;
+            btn.classList.remove("hidden-option");
+        }
+
+        audioQStart.play().catch(e => console.error(e));
+
+        setTimeout(() => {
+            document.getElementById("question").style.opacity = "1";
+        }, 1000);
+
+        setTimeout(() => {
+            document.getElementById("options").style.opacity = "1";
+        }, 2000);
+
+        setTimeout(() => {
+            startTimer(currentQ);
+            
+            // DYNAMIC TIMING AUDIO
+            if (currentQ < 5) { // Questions 1-5 (45 seconds)
+                audioTiming45.play().catch(e => console.error(e));
+            } else if (currentQ < 10) { // Questions 6-10 (60 seconds)
+                audioTiming60.play().catch(e => console.error(e));
+            }
+            // Questions 11-14 have no timer, so no audio plays.
+        }, 3000);
+    }
+
+    function startTimer(level) {
+        clearInterval(timerInterval);
+        if (level < 5) timeLeft = 45;
+        else if (level < 10) timeLeft = 60;
+        else { document.getElementById("timer").innerText = "∞"; return; }
+
+        document.getElementById("timer").innerText = timeLeft;
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            document.getElementById("timer").innerText = timeLeft;
+            if (timeLeft <= 10) document.getElementById("timer-container").classList.add("time-warning");
+            if(timeLeft <= 0) {
+                clearInterval(timerInterval);
+                stopAllAudio();
+                audioWrong.play().catch(e=>console.error(e));
+                showModal("⏳ Time's Up!<br>Game Over.", 'gameover');
+            }
+        }, 1000);
+    }
+
+    function useFiftyFifty() {
+        if (!lifelines.fifty) return;
+        lifelines.fifty = false;
+        document.getElementById('ll-fifty').disabled = true;
+
+        let correctIdx = currentGameData[currentQ].ans;
+        let wrongOptions = [0, 1, 2, 3].filter(idx => idx !== correctIdx);
+        
+        wrongOptions.sort(() => Math.random() - 0.5);
+        let hideThese = [wrongOptions[0], wrongOptions[1]];
+
+        hideThese.forEach(idx => {
+            let btn = document.getElementById("btn-" + idx);
+            btn.classList.add("hidden-option");
+            btn.disabled = true;
+        });
+    }
+
+    function useHint() {
+        if (!lifelines.hint) return;
+        lifelines.hint = false;
+        document.getElementById('ll-hint').disabled = true;
+
+        let hintBox = document.getElementById("hint-box");
+        let hintText = currentGameData[currentQ].hint;
+        hintBox.innerText = "💡 " + hintText;
+        hintBox.style.display = "block";
+    }
+
+    function usePoll() {
+        if (!lifelines.poll) return;
+        lifelines.poll = false;
+        document.getElementById('ll-poll').disabled = true;
+
+        let correctIdx = currentGameData[currentQ].ans;
+        let visibleOptions = [];
+        for (let i = 0; i < 4; i++) {
+            if (!document.getElementById("btn-" + i).classList.contains("hidden-option")) {
+                visibleOptions.push(i);
+            }
+        }
+
+        let stats = [0, 0, 0, 0];
+        let correctPercent = Math.floor(Math.random() * 31) + 55; 
+        stats[correctIdx] = correctPercent;
+
+        let remainingVotes = 100 - correctPercent;
+        let wrongVisible = visibleOptions.filter(idx => idx !== correctIdx);
+
+        wrongVisible.forEach((idx, i) => {
+            if (i === wrongVisible.length - 1) {
+                stats[idx] = remainingVotes; 
+            } else {
+                let p = Math.floor(Math.random() * remainingVotes);
+                stats[idx] = p;
+                remainingVotes -= p;
+            }
+        });
+
+        let msg = "👥 Audience Poll Results:<br><br>";
+        const letters = ['A', 'B', 'C', 'D'];
+        visibleOptions.forEach(idx => {
+            msg += `${letters[idx]}: ${stats[idx]}%<br>`;
+        });
+
+        showModal(msg, 'info');
+    }
+
+    function lockAnswer(selectedIdx) {
+        clearInterval(timerInterval);
+        stopAllAudio(); 
+
+        let buttons = document.getElementsByClassName("option-btn");
+        for(let btn of buttons) btn.disabled = true;
+
+        // INSTANT LOCK SOUND AND COLOR REVEAL
+        setTimeout(() => {
+            buttons[selectedIdx].style.backgroundColor = "#d4af37";
+            buttons[selectedIdx].style.color = "#000";
+            audioLock.play().catch(e=>console.error(e));
+        }, 1000);
+
+        // Suspense playing for the entire 12-second length
+        setTimeout(() => {
+            audioSuspense.play().catch(e=>console.error(e));
+        }, 3000);
+
+        setTimeout(() => { 
+            revealAnswer(selectedIdx, buttons); 
+        }, 15000); // Total 15s delay
+    }
+
+    function revealAnswer(selectedIdx, buttons) {
+        stopAllAudio(); 
+
+        setTimeout(() => {
+            let correctIdx = currentGameData[currentQ].ans;
+
+            if(selectedIdx === correctIdx) {
+                buttons[selectedIdx].style.backgroundColor = "#28a745";
+                audioCorrect.play().catch(e=>console.error(e));
+                
+                setTimeout(() => {
+                    showModal(`🏆 CORRECT! 🏆<br>You won ${prizes[currentQ]}!`, 'next');
+                }, 3000);
+            } else {
+                buttons[selectedIdx].style.backgroundColor = "#dc3545";
+                buttons[correctIdx].style.backgroundColor = "#28a745";
+                audioWrong.play().catch(e=>console.error(e));
+                
+                let safeHavenPrize = "₹0";
+                if (currentQ >= 4 && currentQ < 9) safeHavenPrize = "₹10,000";
+                if (currentQ >= 9) safeHavenPrize = "₹3,20,000";
+
+                setTimeout(() => {
+                    showModal(`❌ WRONG ANSWER! ❌<br>You drop to: ${safeHavenPrize}.`, 'gameover');
+                }, 4000);
+            }
+        }, 1000);
+    }
+
+    function goToHome() {
+        stopAllAudio();
+        document.getElementById("modal").style.display = "none";
+        document.getElementById("game-container").style.display = 'none';
+        document.getElementById('intro-screen').style.display = 'none';
+        document.getElementById('custom-topic').value = "";
+        document.getElementById('custom-section').style.display = 'none';
+        document.getElementById("setup-screen").style.display = 'block';
+    }
+
+    function showModal(msg, type) {
+        document.getElementById("modal-text").innerHTML = msg;
+        let btnContainer = document.getElementById("modal-btn-container");
+        btnContainer.innerHTML = ""; 
+
+        const currentCustomVal = document.getElementById('custom-topic').value.trim();
+        const startFuncCall = currentCustomVal !== "" ? "generateAndStart(true)" : "generateAndStart(false)";
+
+        if (type === 'gameover') {
+            btnContainer.innerHTML = `
+                <button onclick="document.getElementById('modal').style.display='none'; ${startFuncCall};">Play Again</button>
+                <button onclick="goToHome()">Home Page</button>
+            `;
+        } else if (type === 'next') {
+            btnContainer.innerHTML = `
+                <button onclick="document.getElementById('modal').style.display='none'; currentQ++; loadQuestion();">Next Question</button>
+            `;
+        } else if (type === 'info') {
+            btnContainer.innerHTML = `
+                <button onclick="document.getElementById('modal').style.display='none';">Back to Game</button>
+            `;
+        }
+        
+        document.getElementById("modal").style.display = "flex";
+    }
+</script>
+</body>
+</html>
