@@ -20,14 +20,26 @@ export default async function handler(req, res) {
     if (data.candidates && data.candidates[0].content) {
       let text = data.candidates[0].content.parts[0].text;
       
-      // Advanced Parser: Strip out any markdown or unexpected characters to isolate the JSON array
+      // Trim spaces and remove all markdown-style codeblock indicators
       text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+      
+      // Locate the start of the JSON array and end of it
       const startIdx = text.indexOf('[');
       const endIdx = text.lastIndexOf(']');
       
       if (startIdx !== -1 && endIdx !== -1) {
         text = text.substring(startIdx, endIdx + 1);
-        return res.status(200).json({ candidates: [{ content: { parts: [{ text }] } }] });
+        
+        // Ensure it's valid JSON format
+        JSON.parse(text);
+        
+        return res.status(200).json({
+          candidates: [{
+            content: {
+              parts: [{ text: text }]
+            }
+          }]
+        });
       }
     }
 
