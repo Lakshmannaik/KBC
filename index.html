@@ -366,10 +366,9 @@
 
     // --- GAME GENERATION LOGIC WITH AUTO-RETRY ---
     async function generateAndStart(isCustom) {
-        const safeGeminiKey = API_KEY.trim();
-        if(safeGeminiKey === "PASTE_YOUR_GEMINI_API_KEY_HERE" || !safeGeminiKey) { 
-            alert("Please edit the HTML file and paste your Gemini API key in the JavaScript section!"); 
-            return; 
+        // Safe check for deployment
+        if (!process.env.GEMINI_API_KEY && API_KEY === "") {
+             console.log("Running in Production Mode");
         }
 
         let customTopic = isCustom ? document.getElementById('custom-topic').value.trim() : "";
